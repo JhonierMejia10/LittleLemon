@@ -5,6 +5,7 @@ from .models import MenuItem
 from .serializers import MenuItemSerializer
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+from django.core.paginator import Paginator, EmptyPage
 
 
 @api_view(['GET','POST','PUT'])
@@ -16,6 +17,9 @@ def menu_items(request):
         to_price = request.query_params.get('to_price')
         search = request.query_params.get('search')
         ordering = request.query_params.get('ordering')
+        perpage = request.query_params.get('perpage', default=2)
+        page = request.query_params.get('page', default = 1)
+
         if category_name:
             items = items.filter(category__title = category_name)
         if to_price:
@@ -25,8 +29,14 @@ def menu_items(request):
         if ordering:
             items = items.order_by(ordering)
 
+        paginator = Paginator(items, per_page=perpage)
+        try:
+            items = paginator.page(number=page)
+        except EmptyPage:
+            items=[]
         serialized_items = MenuItemSerializer(items, many=True)
         return Response(serialized_items.data)
+    
     elif request.method == 'POST':
         serialized_items = MenuItemSerializer(data=request.data)
         serialized_items.is_valid(raise_exception=True)
@@ -36,7 +46,7 @@ def menu_items(request):
 
 @api_view()
 def single_item(request, id):
-    item = get_object_or_404(MenuItem,pk=id)
+    item = get_object_or_404(MenuItem,id=id)
     serialized_item = MenuItemSerializer(item)
     return Response(serialized_item.data)
 
