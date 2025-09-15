@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-uc%8w2a8!h!#k@&-prh@=u&^jo!vxn%$hs08wtn%xn-mo2!o-f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -38,7 +38,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'LittleLemonAP'
+    'LittleLemonAP',
+    'rest_framework.authtoken',
+    'djoser',
+    #'rest_framework_simplejwt',
+    #'rest_framework_simplejwt.token_blacklist'
 ]
 
 MIDDLEWARE = [
@@ -122,3 +126,38 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES':[
+        'rest_framework.renderers.JSONRenderer',
+        #'rest_framework_xml.renderers.XMLRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication'
+    ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_THROTTLE_RATES':{
+        'anon':'2/day',
+        'user':'5/minute',
+        'ten':'10/minute'
+    },
+    'DEFAULT_THROTTLE_CLASSES': [
+         'rest_framework.throttling.AnonRateThrottle',
+         'rest_framework.throttling.UserRateThrottle',
+         
+    ],
+}
+
+DJOSER = {
+    "USER_ID_FIELD":"username"
+}
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5)
+}

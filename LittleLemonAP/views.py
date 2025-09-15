@@ -6,6 +6,12 @@ from .serializers import MenuItemSerializer
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.core.paginator import Paginator, EmptyPage
+from rest_framework.decorators import permission_classes, throttle_classes
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import UserRateThrottle
+from .throttles import TenCallsPerMinute
+from django.contrib.auth.models import User,Group
 
 
 @api_view(['GET','POST','PUT'])
@@ -51,3 +57,42 @@ def single_item(request, id):
     return Response(serialized_item.data)
 
 
+@api_view()
+@permission_classes([IsAuthenticated])
+def secret(request):
+    return Response({"message":"Some secret message"})
+
+@api_view()
+@permission_classes([IsAuthenticated])
+def manager_view(request):
+    if request.user.groups.filter(name='Manager').exists():
+        return Response({"message":"Only managers should see this!"})
+    else:
+        return Response({'message':"You are not authorized"},403)
+    
+@api_view()
+@throttle_classes([AnonRateThrottle])
+def throttle_check(request):
+    return Response({"message":"Successful!"})
+
+@api_view()
+@permission_classes([IsAuthenticated])
+@throttle_classes([TenCallsPerMinute])
+def throttle_check_auth(request):
+    return Response({"message":"message for the logged in users only"})
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def managers(request):
+    username = request.data['username']
+    if username:
+        user = get_object_or_404(User, username=username)
+        managers = Group.objects.get(name='Manager')
+        
+        if request.method == 'POST':
+            managers.user_set.add(user)
+        elif request.method == 'DELETE':
+            managers.user_set.remove(user)
+        return Response({"message":"Ok"})
+    
+    return Response({"message":"error"}, status=status.HTTP_400_BAD_REQUEST)
